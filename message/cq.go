@@ -54,19 +54,20 @@ func (m Segment) buildDataSegmentString(sb *strings.Builder) {
 	switch m.Data.(type) {
 	case UnknownData:
 		for k, v := range m.Data.(UnknownData) {
-			sb.WriteString(fmt.Sprintf(",%s=", k))
+			fmt.Fprintf(sb, ",%s=", k)
 			sb.WriteString(EscapeCQString(fmt.Sprintf("%v", v)))
 		}
 		return
 	}
-	utils.WalkStructLeafWithTag(m.Data, func(v reflect.Value, tagPath []reflect.StructTag) error {
+	// no error returned
+	_ = utils.WalkStructLeafWithTag(m.Data, func(v reflect.Value, tagPath []reflect.StructTag) error {
 		tag := tagPath[len(tagPath)-1]
 		if tag.Get("json") == "-" {
 			return nil
 		}
 		tags := strings.Split(tag.Get("json"), ",")
 		remaining := utils.NewSetFrom(tags[1:]...)
-		sb.WriteString(fmt.Sprintf(",%s=", tags[0]))
+		fmt.Fprintf(sb, ",%s=", tags[0])
 		if remaining.Contains("omitempty") {
 			if !v.IsZero() {
 				sb.WriteString(EscapeCQString(fmt.Sprintf("%v", v.Interface())))

@@ -49,9 +49,9 @@ func (c *MusicCommand) OnCommand(parseResult *event.ParseResult) {
 	args := parseResult.ParsedArgs.(*MusicCommandArgs)
 	if parseResult.Error != nil {
 		if parseResult.StdOut != "" {
-			parseResult.Event.Reply(message.NewText(parseResult.StdOut).Segment().AsChain(), true)
+			_, _ = parseResult.Event.Reply(message.NewText(parseResult.StdOut).Segment().AsChain(), true)
 		} else {
-			parseResult.Event.Reply(message.NewText(parseResult.Error.Error()).Segment().AsChain(), true)
+			_, _ = parseResult.Event.Reply(message.NewText(parseResult.Error.Error()).Segment().AsChain(), true)
 		}
 		return
 	}
@@ -59,13 +59,13 @@ func (c *MusicCommand) OnCommand(parseResult *event.ParseResult) {
 	case "qq":
 		id, err := getQQMusicId(args.SongName)
 		if err != nil {
-			parseResult.Event.Reply(message.NewText(err.Error()).Segment().AsChain(), true)
+			_, _ = parseResult.Event.Reply(message.NewText(err.Error()).Segment().AsChain(), true)
 			return
 		}
-		napcat.SetMsgEmojiLike(c.bot, parseResult.Event.GetMessageId(), 128166)
-		parseResult.Event.Reply(message.NewMusic(message.MusicTypeQQ, id).Segment().AsChain(), false)
+		_, _ = napcat.SetMsgEmojiLike(c.bot, parseResult.Event.GetMessageId(), 128166)
+		_, _ = parseResult.Event.Reply(message.NewMusic(message.MusicTypeQQ, id).Segment().AsChain(), false)
 	default:
-		parseResult.Event.Reply(message.NewText("暂不支持").Segment().AsChain(), true)
+		_, _ = parseResult.Event.Reply(message.NewText("暂不支持").Segment().AsChain(), true)
 	}
 }
 
@@ -87,14 +87,20 @@ func getQQMusicId(songName string) (int64, error) {
 }
 
 func main() {
-	napcat.Extension.Register()
+	err := napcat.Extension.Register()
+	if err != nil {
+		panic(err)
+	}
 	gonapcat.Init(config.DefaultLogConfig().WithStderr().WithLevel("debug"))
 	bot, err := gonapcat.NewBot(config.DefaultBotConfig(1341400490, "114514"))
 	if err != nil {
 		panic(err)
 	}
 	bot.RegisterCommand(&MusicCommand{bot: bot})
-	bot.Start()
+	err = bot.Start()
+	if err != nil {
+		panic(err)
+	}
 	defer gonapcat.Finalize()
 
 	interrupt := make(chan os.Signal, 1)

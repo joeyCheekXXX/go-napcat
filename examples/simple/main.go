@@ -40,7 +40,9 @@ func main() {
 		}
 		bot.Logger().Info("Deleted message")
 	})
-	bot.Start()
+	if err := bot.Start(); err != nil {
+		panic(err)
+	}
 	defer gonapcat.Finalize()
 
 	interrupt := make(chan os.Signal, 1)

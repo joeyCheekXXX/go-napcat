@@ -61,8 +61,8 @@ func NewConn(logger *zap.Logger, cfg *config.BotConfig, onRecvMsg func([]byte)) 
 	return wsConn, nil
 }
 
-func (c *Client) Start() {
-	c.setupConn()
+func (c *Client) Start() error {
+	return c.setupConn()
 }
 
 func (c *Client) retry() error {
@@ -76,26 +76,33 @@ func (c *Client) retry() error {
 		c.logger.Error("failed to reconnect", zap.Error(err))
 		return err
 	}
-	c.setupConn()
-	return nil
+	return c.setupConn()
 }
 
-func (c *Client) setupConn() {
+func (c *Client) setupConn() error {
+	err := c.conn.SetReadDeadline(time.Now().Add(c.pongWait))
+	if err != nil {
+		c.logger.Error("set read deadline", zap.Error(err))
+		return err
+	}
+	c.conn.SetPongHandler(func(string) error {
+		c.logger.Debug("received pong")
+		if err := c.conn.SetReadDeadline(time.Now().Add(c.pongWait)); err != nil {
+			c.logger.Error("set read deadline", zap.Error(err))
+			return err
+		}
+		return nil
+	})
 	go c.readPump()
 	go c.writePump()
+	return nil
 }
 
 func (c *Client) readPump() {
 	conn := c.conn
 	defer func() {
-		conn.Close()
+		_ = conn.Close()
 	}()
-	conn.SetReadDeadline(time.Now().Add(c.pongWait))
-	conn.SetPongHandler(func(string) error {
-		c.logger.Debug("received pong")
-		conn.SetReadDeadline(time.Now().Add(c.pongWait))
-		return nil
-	})
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
@@ -120,7 +127,7 @@ func (c *Client) writePump() {
 	conn := c.conn
 	defer func() {
 		ticker.Stop()
-		conn.Close()
+		_ = conn.Close()
 	}()
 	for {
 		select {
@@ -141,7 +148,7 @@ func (c *Client) writePump() {
 		case message, ok := <-c.send:
 			if !ok {
 				c.logger.Error("send channel closed")
-				c.writeMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+				_ = c.writeMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 				return
 			}
 			c.logger.Debug("wssend", zap.String("message", string(message)))
@@ -154,7 +161,11 @@ func (c *Client) writePump() {
 }
 
 func (c *Client) writeMessage(messageType int, data []byte) error {
-	c.conn.SetWriteDeadline(time.Now().Add(c.writeWait))
+	err := c.conn.SetWriteDeadline(time.Now().Add(c.writeWait))
+	if err != nil {
+		c.logger.Error("set write deadline", zap.Error(err))
+		return err
+	}
 	return c.conn.WriteMessage(messageType, data)
 }
 

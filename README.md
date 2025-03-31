@@ -28,6 +28,16 @@ go get -u github.com/nekoite/go-napcat
 
 > [!CAUTION]
 > `bot.Start()` 是非阻塞的。请使用管道或 `WaitGroup` 阻塞当前 Go 程。
+> 例子：[examples/simple/main.go](examples/simple/main.go)
+>
+> ```go
+> interrupt := make(chan os.Signal, 1)
+> signal.Notify(interrupt, os.Interrupt)
+> 
+> <-interrupt
+> bot.Close()
+> <-time.After(1 * time.Second)
+> ```
 
 ## 例子
 

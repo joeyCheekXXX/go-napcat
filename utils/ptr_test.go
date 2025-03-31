@@ -12,7 +12,7 @@ func TestDerefAny(t *testing.T) {
 	assert.Equal(1, utils.DerefAny(1))
 	x := 1
 	assert.Equal(1, utils.DerefAny(&x))
-	var c struct{ a int } = struct{ a int }{a: 1}
+	var c = struct{ a int }{a: 1}
 	assert.True(c == utils.DerefAny(c))
 	assert.True(c == utils.DerefAny(&c))
 	var d any

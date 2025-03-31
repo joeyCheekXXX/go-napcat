@@ -122,9 +122,15 @@ func (b *Bot) SetGlobalCommandPrefix(prefix string) {
 	b.dispatcher.SetGlobalCommandPrefix(prefix)
 }
 
+// Start 启动机器人，连接到服务器并初始化 bot 信息。
+// Start 是不阻塞的，你需要手动处理阻塞。
 func (b *Bot) Start() error {
-	b.conn.Start()
-	err := b.initializeBotInfo()
+	err := b.conn.Start()
+	if err != nil {
+		b.logger.Error("failed to start ws connection", zap.Error(err))
+		b.Close()
+	}
+	err = b.initializeBotInfo()
 	if err != nil {
 		b.logger.Error("error initializing bot info, shutting down", zap.Error(err))
 		b.Close()

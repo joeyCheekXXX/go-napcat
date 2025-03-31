@@ -217,11 +217,12 @@ func (r *RespDataMessage) UnmarshalJSON(data []byte) error {
 	fields := gjson.GetManyBytes(data, "message_id", "message", "time", "message_type", "real_id", "sender")
 	messageType := MessageType(fields[3].String())
 	var s qq.IUser
-	if messageType == MessageTypePrivate {
+	switch messageType {
+	case MessageTypePrivate:
 		s = &qq.Friend{}
-	} else if messageType == MessageTypeGroup {
+	case MessageTypeGroup:
 		s = &qq.GroupUser{}
-	} else {
+	default:
 		s = &qq.BasicUser{}
 	}
 	if err := json.Unmarshal([]byte(fields[5].Raw), s); err != nil {
