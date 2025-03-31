@@ -17,9 +17,12 @@ go get -u github.com/nekoite/go-napcat
 
 ## 机器人与初始化
 
-首先，使用 `gonapcat.Init(*config.LogConfig)` 进行初始化并配置日志。不要忘记使用 `defer gonapcat.Finalize()` 或在最后调用这个函数来安全退出。
+首先，使用 `config.DefaultLogConfig()` 创建 LogConfig，然后用 `WithPaths` 或 `WithStd[err|out]` 进行配置。将其传入 `gonapcat.Init(*config.LogConfig)` 进行初始化并配置日志。不要忘记使用 `defer gonapcat.Finalize()` 或在最后调用这个函数来安全退出。
 
-然后，使用 `gonapcat.NewBot(*config.BotConfig)` 创建新的机器人实例。Config 中使用的机器人 QQ 号需要与对应的 NapCat（或 OneBot）客户端上使用的一致。
+然后，使用 `config.BotConfigFromYamlFile` 从配置文件读取配置或使用 `config.DefaultBotConfig` 手动配置。将其传入 `gonapcat.NewBot(*config.BotConfig)` 创建新的机器人实例。Config 中使用的机器人 QQ 号需要与对应的 NapCat（或 OneBot）客户端上使用的一致。
+
+> [!CAUTION]
+> 不建议打开 `BotConfig.UseGoroutine`，它会在每个事件处理器中创建新的 goroutine 来处理事件。每一个事件已经是在单独的 goroutine 中运行了。
 
 然后，使用 `bot.RegisterHandler*` 系列方法配置监听器。要开始监听，使用 `bot.Start()`。要停止监听，使用 `bot.Close()`。停止后，无法再重新启动，需要创建新的机器人实例。
 
