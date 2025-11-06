@@ -1,6 +1,7 @@
-package gonapcat
+package connection
 
 import (
+	"github.com/nekoite/go-napcat"
 	"testing"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 // 实现连接事件处理器
 type MyConnectionHandler struct {
 	t   *testing.T
-	bot *Bot
+	bot *gonapcat.Bot
 }
 
 func (h *MyConnectionHandler) OnConnectionError(err error) {
@@ -53,7 +54,7 @@ func (h *MyConnectionHandler) OnStateChange(state ws.ConnectionState) {
 
 func TestConnectionWithPanicProtection(t *testing.T) {
 	conf := config.DefaultBotConfig(1, "[qSX*&Z-c{]|e?v3").WithWs("127.0.0.1", 3001, "")
-	bot, err := NewBot(conf)
+	bot, err := gonapcat.NewBot(conf)
 	if err != nil {
 		t.Errorf("NewBot failed, error: %s", err)
 		return
@@ -109,7 +110,7 @@ func TestConnectionWithPanicProtection(t *testing.T) {
 // TestManualReconnectWithRetry 演示带重试策略的手动重连
 func TestManualReconnectWithRetry(t *testing.T) {
 	conf := config.DefaultBotConfig(1, "[qSX*&Z-c{]|e?v3").WithWs("127.0.0.1", 3001, "")
-	bot, err := NewBot(conf)
+	bot, err := gonapcat.NewBot(conf)
 	if err != nil {
 		t.Errorf("NewBot failed, error: %s", err)
 		return
@@ -136,7 +137,7 @@ func TestManualReconnectWithRetry(t *testing.T) {
 // ReconnectWithRetryHandler 实现了带指数退避的重连策略
 type ReconnectWithRetryHandler struct {
 	t          *testing.T
-	bot        *Bot
+	bot        *gonapcat.Bot
 	maxRetries int
 	baseDelay  time.Duration
 	retryCount int
