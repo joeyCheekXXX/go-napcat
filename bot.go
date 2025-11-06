@@ -17,6 +17,12 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// ConnectionEventHandler WebSocket 连接事件处理器
+type ConnectionEventHandler interface {
+	OnConnectionError(err error)
+	OnStateChange(state ws.ConnectionState)
+}
+
 type botInfoStore struct {
 	botUser qq.BasicUser
 }
@@ -120,6 +126,44 @@ func (b *Bot) RegisterCommand(c event.ICommand) {
 
 func (b *Bot) SetGlobalCommandPrefix(prefix string) {
 	b.dispatcher.SetGlobalCommandPrefix(prefix)
+}
+
+// SetConnectionEventHandler 设置连接事件处理器
+func (b *Bot) SetConnectionEventHandler(handler ConnectionEventHandler) {
+	if handler == nil {
+		return
+	}
+	b.conn.SetOnConnectionError(handler.OnConnectionError)
+	b.conn.SetOnStateChange(handler.OnStateChange)
+}
+
+// GetConnectionState 获取当前连接状态
+func (b *Bot) GetConnectionState() ws.ConnectionState {
+	return b.conn.GetState()
+}
+
+// IsConnected 判断是否已连接
+func (b *Bot) IsConnected() bool {
+	state := b.conn.GetState()
+	return state == ws.StateConnected
+}
+
+// Reconnect 手动触发重连
+func (b *Bot) Reconnect() error {
+	b.logger.Info("triggering manual reconnect")
+	err := b.conn.Reconnect()
+	if err != nil {
+		b.logger.Error("reconnect failed", zap.Error(err))
+		return err
+	}
+	// 重连成功后重新初始化 bot 信息
+	err = b.initializeBotInfo()
+	if err != nil {
+		b.logger.Error("error initializing bot info after reconnect", zap.Error(err))
+		return err
+	}
+	b.logger.Info("reconnect and reinitialize successful")
+	return nil
 }
 
 // Start 启动机器人，连接到服务器并初始化 bot 信息。
@@ -340,6 +384,12 @@ func (b *Bot) initializeBotInfo() error {
 }
 
 func (b *Bot) onRecvWsMsg(msg []byte) {
+	defer func() {
+		if r := recover(); r != nil {
+			b.logger.Error("panic in onRecvWsMsg", zap.Any("panic", r), zap.Stack("stack"))
+		}
+	}()
+	
 	if utils.IsRawMessageApiResp(msg) {
 		err := utils.TimedFunc(func() error {
 			return b.api.HandleApiResp(msg)
