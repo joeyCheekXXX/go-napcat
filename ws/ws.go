@@ -74,7 +74,8 @@ func NewConn(logger *zap.Logger, cfg *config.BotConfig, onRecvMsg func([]byte)) 
 		pingPeriod: time.Duration(cfg.Ws.PingPeriod) * time.Millisecond,
 		onRecvMsg:  onRecvMsg,
 	}
-	wsConn.setState(StateDisconnected)
+	// 连接已建立，设置初始状态为已连接
+	wsConn.setState(StateConnected)
 	return wsConn, nil
 }
 
